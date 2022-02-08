@@ -54,7 +54,18 @@ app.post('/messages', (req, res) => {
     var message = new Message(req.body)
     message.save((err) => {
         if (err)
-            sendStatus(500)
+        sendStatus(500)
+
+        // nested callbacks
+        Message.findOne({message: 'badword'}, (err, censored) => {
+            if(censored){
+                console.log('censored words found', censored)
+                Message.remove({_id: censored.id}, (err) =>{
+                    console.log('removed censored message')
+                })
+            }
+        })
+
     
         // if saved to mongodb
         io.emit("message", req.body)
