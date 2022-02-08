@@ -26,6 +26,8 @@
         - this initializtion will also try to make a connection to the socket.io server at the same url that the current page is being hosted on.
     */
    var socket = io()
+   //
+   // $() jquery document ready
     $(() => {
         $("#send").click(()=>{
             var message = { name: $("#name").val(), message: $("#message").val()}
@@ -34,13 +36,15 @@
         getMessages()
     })
 
-    function addMessages(message){
+    socket.on("message", addMessage) // listen to message event; callback function - rename addMessages() to addMessage since adding a single message 
+
+    function addMessage(message){
         $("#messages").append(`<h4> ${message.name} </h4> <p> ${message.message} </p>`)
     }
 
     function getMessages() {
         $.get('http://localhost:3000/messages', (data) => {
-            data.forEach(addMessages);
+            data.forEach(addMessage);
         })
     }
 

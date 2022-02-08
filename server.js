@@ -29,6 +29,7 @@ app.post('/messages', (req, res) => {
     // console.log(req.body) - this should log the json data in the console from postman request for debugging
     //console.log(req.body)
     messages.push(req.body) // now change to put it to the messages array
+    io.emit("message", req.body)
     res.sendStatus(200)
 })
 
