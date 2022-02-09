@@ -52,25 +52,32 @@ app.post('/messages', async (req, res) => {
     // console.log(req.body) - this should log the json data in the console from postman request for debugging
     //console.log(req.body)
     //
-    var message = new Message(req.body)
+    try {
+        throw 'some error'
+        var message = new Message(req.body)
 
-    var savedMessage = await message.save()
-    console.log('saved') // if saved to mongodb
-    
-    var censored = await Message.findOne({ message: 'badword' })
+        var savedMessage = await message.save()
+        console.log('saved') // if saved to mongodb
 
-    if (censored)
-        //console.log('censored words found', censored)
-        await Message.deleteOne({ _id: censored.id }) // collection.remove is depreciated
-    else
-        // only emit if badword is not found
-        io.emit("message", req.body)
-    res.sendStatus(200)
+        var censored = await Message.findOne({ message: 'badword' })
 
-    // .catch((err) => {
-    //     res.sendStatus(500)
-    //     return console.error(err)
-    // })
+        if (censored)
+            //console.log('censored words found', censored)
+            await Message.deleteOne({ _id: censored.id }) // collection.remove is depreciated
+        else
+            // only emit if badword is not found
+            io.emit("message", req.body)
+        res.sendStatus(200)
+    }
+    catch (error) {
+        res.sendStatus(500)
+        return console.error(error)
+    }
+    finally{
+        //logger.log(message)
+        // still get executed even thrown error
+        console.log('message post called') 
+    }
 })
 
 /* add io.on and we'll check for the connection event, and we'll supply a function that takes in a socket. And for now, let's console.log a user connected, we can see that a Socket.IO connection has successfully been made from the browser since we're getting a message in the connection event and we can see a user connected in our Console. */
