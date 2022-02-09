@@ -47,34 +47,30 @@ app.get('/messages', (req, res) => {
     })
 })
 
-app.post('/messages', (req, res) => {
+// async/await - make the express function async
+app.post('/messages', async (req, res) => {
     // console.log(req.body) - this should log the json data in the console from postman request for debugging
     //console.log(req.body)
     //
-    // promise - make asynshronous like synchronous (using then); downward instead of inword
-    // Promises return an object which promise to do some work. This object has separate callbacks for success and for failures. This lets us work with asynchronous code in a much more synchronous way. A really nice feature is that Promises can be combined into dependency chains.
-    // 
     var message = new Message(req.body)
 
-    message.save()
-    .then(() => {
-        // if saved to mongodb
-        console.log('saved')
-        return Message.findOne({ message: 'badword' })
-    })
-    .then(censored => {
-        if (censored) {
-            console.log('censored words found', censored)
-            return Message.deleteOne({ _id: censored.id }) // collection.remove is depreciated
-        }
+    var savedMessage = await message.save()
+    console.log('saved') // if saved to mongodb
+    
+    var censored = await Message.findOne({ message: 'badword' })
+
+    if (censored)
+        //console.log('censored words found', censored)
+        await Message.deleteOne({ _id: censored.id }) // collection.remove is depreciated
+    else
         // only emit if badword is not found
         io.emit("message", req.body)
-        res.sendStatus(200)
-    })
-    .catch((err) => {
-        res.sendStatus(500)
-        return console.error(err)
-    })
+    res.sendStatus(200)
+
+    // .catch((err) => {
+    //     res.sendStatus(500)
+    //     return console.error(err)
+    // })
 })
 
 /* add io.on and we'll check for the connection event, and we'll supply a function that takes in a socket. And for now, let's console.log a user connected, we can see that a Socket.IO connection has successfully been made from the browser since we're getting a message in the connection event and we can see a user connected in our Console. */
