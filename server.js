@@ -47,6 +47,15 @@ app.get('/messages', (req, res) => {
     })
 })
 
+// TDD 
+app.get('/messages/:user', (req, res) => {
+    var user = req.params.user
+    Message.find({name: user}, (err, messages) => {
+        res.send(messages)
+    })
+})
+
+
 // async/await - make the express function async
 app.post('/messages', async (req, res) => {
     // console.log(req.body) - this should log the json data in the console from postman request for debugging
