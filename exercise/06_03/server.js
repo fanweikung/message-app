@@ -64,7 +64,8 @@ app.post("/messages", async (req, res) => {
 
   var censored = await Message.findOne({ message: "badword" });
 
-  if (censored) await Message.remove({ _id: censored.id });
+  // if (censored) await Message.remove({ _id: censored.id }); collection.remove is depreciated
+  if (censored) await Message.deleteOne({ _id: censored.id });
   else io.emit("message", req.body);
 
   res.sendStatus(200);
