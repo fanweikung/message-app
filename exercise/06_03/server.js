@@ -54,29 +54,25 @@ app.get("/messages", async (req, res) => {
 //   res.sendStatus(200);
 // });
 //
-// Use then and chanted functions
-// - TODO TypeError: Message.remove is not a function
-app.post("/messages", (req, res) => {
+// TODO: TypeError: Message.remove is not a function
+app.post("/messages", async (req, res) => {
   var message = new Message(req.body);
 
-  message
-    .save()
-    .then(() => {
-      console.log("saved");
-      return Message.findOne({ message: "badword" });
-    })
-    .then((censored) => {
-      if (censored) {
-        console.log("censored words found", censored);
-        return Message.remove({ _id: censored.id });
-      }
-      io.emit("message", req.body);
-      res.sendStatus(200);
-    })
-    .catch((err) => {
-      res.sendStatus(500);
-      return console.error(err);
-    });
+  var savedMessage = await message.save();
+
+  console.log("saved");
+
+  var censored = await Message.findOne({ message: "badword" });
+
+  if (censored) await Message.remove({ _id: censored.id });
+  else io.emit("message", req.body);
+
+  res.sendStatus(200);
+
+  // .catch((err) => {
+  //     res.sendStatus(500)
+  //     return console.error(err)
+  // })
 });
 
 io.on("connection", (socket) => {
