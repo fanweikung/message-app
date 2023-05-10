@@ -2,5 +2,8 @@
   "dependencies": {
     "18": "^0.0.0",
     "mongoose": "^7.1.0"
+  },
+  "devDependencies": {
+    "jasmine": "^4.6.0"
   }
 }
