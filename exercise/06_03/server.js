@@ -57,7 +57,7 @@ app.get("/messages", async (req, res) => {
 // 08_01 Try Catch block
 app.post("/messages", async (req, res) => {
   try {
-    // Force to throw the error to catch and log in console
+    // Trigger the error to catch and log in console
     // throw "some error";
     var message = new Message(req.body);
 
@@ -75,6 +75,8 @@ app.post("/messages", async (req, res) => {
   } catch (error) {
     res.sendStatus(500);
     return console.error(error);
+  } finally {
+    console.log("message post called, either saved or error");
   }
 });
 
