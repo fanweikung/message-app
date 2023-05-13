@@ -1,109 +1,123 @@
-var express = require("express")
-var bodyParser = require("body-parser")
-var io = require("socket.io")
-var mongoose = require("mongoose")
-const { sendStatus } = require("express/lib/response")
-//const { MongoClient } = require('mongodb')
+var express = require("express");
+var bodyParser = require("body-parser");
 
-var app = express() // run node on express backend (client -> server only)
-/* socket.io needs to tie in with Express, and the game plan is that we'll create a regular HTTP server with Node that will then share with Express and Socket.IO.
-First let's set up that HTTP server:
-- Add var http require then we'll use the HTTP library from Node and we'll call .Server on the require itself and pass in our Express app
-- Then let's create io and set it to require socket.io and we'll pass in reference to http*/
-var http = require("http").Server(app)
-var io = require("socket.io")(http)
-/*
-mongo connection
-const uri = "mongodb+srv://user:user@learning-node.qallf.mongodb.net/"
-*/
+var app = express(); // run node on express backend (client -> server only)
+// socket.io needs to tie in with Express
+// Create a regular HTTP server with Node that will then share with Express and Socket.IO.
+// Set up HTTP server:
+// Add var http require then we'll use the HTTP library from Node, call .Server on the require itself and pass in our Express app
+var http = require("http").Server(app);
+var io = require("socket.io")(http); // Then create io and set it to require socket.io. Pass in reference to http
+var mongoose = require("mongoose");
 
-mongoose.Promise = Promise // doesn't seem to need 
-/* mongoose connection */
-const dbUrl = "mongodb+srv://user:user@learning-node.qallf.mongodb.net/"
+app.use(express.static(__dirname)); // tell express to use static content
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
-// tell express to use static content
-app.use(express.static(__dirname))
-app.use(bodyParser.json()) // expect json
-app.use(bodyParser.urlencoded({extended: false})) // browser data
+// 07_02 Tell mongoose to use default ES6 Promise Library
+mongoose.Promise = Promise;
 
-// object data model
-var Message = mongoose.model('message', {
-    name: String,
-    message: String
-})
+var dbUrl =
+  "mongodb+srv://user:user@learning-node.qallf.mongodb.net/?retryWrites=true&w=majority";
 
-/* no longer need the hard coded messages for get
-    TODO: why will it crash when removing the messages array??? */
-var messages = [
-    {name: "Tim", message: "Hi"},
-    {name: "Jane", message: "Hello"}
-]
+// 06_04 Use Mongoose ODM to Save and Get Data
+// 07_01 07_02
+// - Use Promise and Async Await to improve nested callback
+// - Mongoose not loger accept call back at connect & save
+// var messages = [
+//   { name: "Tim", message: "Hi" },
+//   { name: "Jane", message: "Hello" },
+// ];
+//
+// app.get("/messages", (req, res) => {
+//   res.send(messages);
+// });
 
-app.get('/messages', (req, res) => {
-    /* instead of send the hard coded messages, send from mongoDB with no filter {<field>: 'value'} applied
-    res.send(messages)*/
-    Message.find({}, (err, messages) => {
-        res.send(messages)
-    })
-})
+// Capital M indiciates a model
+var Message = mongoose.model("Message", {
+  name: String,
+  message: String,
+});
 
-// TDD 
-app.get('/messages/:user', (req, res) => {
-    var user = req.params.user
-    Message.find({name: user}, (err, messages) => {
-        res.send(messages)
-    })
-})
+// use async await
+app.get("/messages", async (req, res) => {
+  var messages = await Message.find({});
+  res.send(messages);
+});
 
+// 09_03 TDD
+// - Write test case first then implement the function here
+// - Replace callback with sync await
+// app.get("/messages/:user", (req, res) => {
+//   var user = req.params.user;
+//   Message.find({ name: user }, (err, messages) => {
+//     res.send(messages);
+//   });
+// });
+app.get("/messages/:user", async (req, res) => {
+  var user = req.params.user;
+  var messages = await Message.find({ name: user });
+  console.log(messages);
+  res.send(messages);
+});
 
-// async/await - make the express function async
-app.post('/messages', async (req, res) => {
-    // console.log(req.body) - this should log the json data in the console from postman request for debugging
-    //console.log(req.body)
-    //
-    try {
-        //throw 'some error'
-        var message = new Message(req.body)
+// Alternatively, Use then and chanted functions
+// app.get("/messages", (req, res) => {
+//   var messages;
+//   Message.find({}).then((messages) => {
+//     res.send(messages);
+//   });
+// });
 
-        var savedMessage = await message.save()
-        console.log('saved') // if saved to mongodb
+// app.post("/messages", (req, res) => {
+//   messages.push(req.body);
+//   io.emit("message", req.body);
+//   res.sendStatus(200);
+// });
+//
+// 08_01 Try Catch block
+app.post("/messages", async (req, res) => {
+  try {
+    // Trigger the error to catch and log in console
+    // throw "some error";
+    var message = new Message(req.body);
 
-        var censored = await Message.findOne({ message: 'badword' })
+    var savedMessage = await message.save();
 
-        if (censored)
-            //console.log('censored words found', censored)
-            await Message.deleteOne({ _id: censored.id }) // collection.remove is depreciated
-        else
-            // only emit if badword is not found
-            io.emit("message", req.body)
-        res.sendStatus(200)
-    }
-    catch (error) {
-        res.sendStatus(500)
-        return console.error(error)
-    }
-    finally{
-        //logger.log(message)
-        // still get executed even thrown error
-        console.log('message post called') 
-    }
-})
+    console.log("saved");
 
-/* add io.on and we'll check for the connection event, and we'll supply a function that takes in a socket. And for now, let's console.log a user connected, we can see that a Socket.IO connection has successfully been made from the browser since we're getting a message in the connection event and we can see a user connected in our Console. */
+    var censored = await Message.findOne({ message: "badword" });
+
+    // if (censored) await Message.remove({ _id: censored.id }); collection.remove is depreciated
+    if (censored) await Message.deleteOne({ _id: censored.id });
+    else io.emit("message", req.body);
+
+    res.sendStatus(200);
+  } catch (error) {
+    res.sendStatus(500);
+    return console.error(error);
+  } finally {
+    console.log("message post called, either saved or error");
+  }
+});
+
+// add io.on and we'll check for the connection event, and we'll supply a function that takes in a socket.
+// And for now, let's console.log a user connected, we can see that a Socket.IO connection has successfully
+// been made from the browser since we're getting a message in the connection event and we can see a user
+// connected in our Console.
 io.on("connection", (socket) => {
-    console.log("a user connected")
-})
+  console.log("a user connected");
+});
 
-/* connect to mongoDB using mongoose */
-mongoose.connect(dbUrl, err => {
-    if (err){console.error(`$err`)}
-    console.log('connect to db using mongoose')
-})
+// connect to mongoDB using mongoose
+mongoose.connect(dbUrl).catch((error) => {
+  console.log(error);
+});
 
 //app.listen(3000)
 // dynamic reading the port
-/* socket.io implemntation: need to use the new http server to listen
-var server = app.listen(3000, () => {*/
+// socket.io implemntation: need to use the new http server to listen
+// var server = app.listen(3000, () => {
 var server = http.listen(3000, () => {
-    console.log(`Express server is listening on port ${server.address().port}`)
-})
+  console.log("server is listening on port", server.address().port);
+});
